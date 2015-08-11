@@ -8,10 +8,6 @@ import cssselect
 
 from unittest import TestCase
 
-class LunarHTMLException(Exception): pass
-
-class LunarHTMLElementNotFoundException(LunarHTMLException): pass
-
 class BaseLunarHTMLTestCase():
 
     def assertContainsRegex(self, *regexes):
@@ -58,12 +54,12 @@ class BaseLunarHTMLTestCase():
         """Assert a html element matching the selector exists"""
         try:
             self.get_dom_elements(selector)
-        except LunarHTMLElementNotFoundException:
+        except ValueError:
             self.assertTrue(False, msg="Element {0} doesn't exist".format(selector))
 
     def assertNotElementExists(self, selector):
         """Assert a html element matching the selector doesn't exist"""
-        with self.assertRaises(LunarHTMLElementNotFoundException, msg="Element {} does exist".format(selector)):
+        with self.assertRaises(ValueError, msg="Element {} does exist".format(selector)):
             self.get_dom_elements(selector)
 
     def assertAttributeValue(self, selector, attribute, expected_value):
@@ -130,32 +126,28 @@ class BaseLunarHTMLTestCase():
     def get_dom_elements_by_id(self, id):
         elements = self.get_dom_elements_by_xpath('//*[@id="{0}"]'.format(id))
         if len(elements) == 0:
-            raise LunarHTMLElementNotFoundException("Not found")
+            raise ValueError("Not found")
 
         return elements
 
     def get_dom_elements_by_name(self, id):
         elements = self.get_dom_elements_by_xpath('//*[@name="{0}"]'.format(id))
         if len(elements) == 0:
-            raise LunarHTMLElementNotFoundException("Not found")
+            raise ValueError("Not found")
 
         return elements
 
     def get_dom_elements_by_xpath(self, xpath):
-        try:
-            elements = self.parsed_response.xpath(xpath)
-        except lxml.etree.XPathEvalError:
-            raise LunarHTMLElementNotFoundException("Not Found")
-
+        elements = self.parsed_response.xpath(xpath)
         if len(elements) == 0:
-            raise LunarHTMLElementNotFoundException("Not Found")
+            raise ValueError("Not Found")
 
         return elements
 
     def get_dom_elements_by_cssselect(self, cssselector):
         elements = self.parsed_response.cssselect(cssselector)
         if len(elements) == 0:
-            raise LunarHTMLElementNotFoundException("Not Found")
+            raise ValueError("Not Found")
 
         return elements
 
@@ -165,31 +157,31 @@ class BaseLunarHTMLTestCase():
     def get_dom_elements(self, selector):
         try:
             return self.get_dom_elements_by_id(selector)
-        except LunarHTMLElementNotFoundException:
+        except (ValueError, lxml.etree.XPathEvalError):
             pass
 
         try:
             return self.get_dom_elements_by_xpath(selector)
-        except LunarHTMLElementNotFoundException:
+        except (ValueError, lxml.etree.XPathEvalError):
             pass
 
         try:
             return self.get_dom_elements_by_cssselect(selector)
-        except LunarHTMLElementNotFoundException:
+        except (ValueError, cssselect.SelectorSyntaxError):
             pass
 
         try:
             return self.get_dom_elements_by_name(selector)
-        except LunarHTMLElementNotFoundException:
+        except (ValueError, lxml.etree.XPathEvalError):
             pass
 
         try:
             return self.get_dom_elements_by_textcontent(selector)
-        except LunarHTMLElementNotFoundException:
+        except (ValueError, lxml.etree.XPathEvalError):
             pass
 
         # Got to here. ergo not found
-        raise LunarHTMLElementNotFoundException("Not found")
+        raise ValueError("Not found")
 
     def get_attribute_value(self, selector, attribute):
         elements = self.get_dom_elements(selector)
